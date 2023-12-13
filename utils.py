@@ -361,3 +361,45 @@ def _eval_e(y_pred, y, num):
         enhanced = ((align_matrix + 1) * (align_matrix + 1)) / 4
         score[i] = torch.sum(enhanced) / (y.numel() - 1 + 1e-20)
     return score
+
+
+
+##################
+def dice_coefficient(y_true, y_pred):
+    intersection = np.sum(y_true * y_pred)
+    union = np.sum(y_true) + np.sum(y_pred)
+    dice = (2.0 * intersection) / (union + 1e-8)  # 加上一个小的值以避免除零错误
+    return dice
+
+def intersection_over_union(y_true, y_pred):
+    intersection = np.sum(y_true * y_pred)
+    union = np.sum(y_true) + np.sum(y_pred) - intersection
+    iou = intersection / (union + 1e-8)  # 加上一个小的值以避免除零错误
+    return iou
+
+def calc_dice_iou_f1_auc(y_pred,y_true):
+    batchsize = y_true.shape[0]
+    with torch.no_grad():
+        assert y_pred.shape == y_true.shape
+        f1, auc = 0, 0
+        dice, iou = 0, 0
+        y_true = y_true.cpu().numpy()
+        y_pred = y_pred.cpu().numpy()
+        for i in range(batchsize):
+            true = y_true[i].flatten()
+            true = true.astype(np.int)
+            pred = y_pred[i].flatten()
+
+            precision, recall, thresholds = precision_recall_curve(true, pred)
+
+            # auc
+            auc += roc_auc_score(true, pred)
+            # auc += roc_auc_score(np.array(true>0).astype(np.int), pred)
+            f1 += max([(2 * p * r) / (p + r+1e-10) for p, r in zip(precision, recall)])
+
+            #dice
+            dice += dice_coefficient(true, pred)
+            iou += intersection_over_union(true, pred)
+
+
+    return dice/batchsize, iou/batchsize, f1/batchsize, auc/batchsize
