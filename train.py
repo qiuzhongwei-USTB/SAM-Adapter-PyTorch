@@ -146,7 +146,7 @@ def train(train_loader, model):
 def main(config_, save_path, args):
     global config, log, writer, log_info
     config = config_
-    log, writer = utils.set_save_path(save_path, remove=True)
+    log, writer = utils.set_save_path(save_path, remove=False)
     with open(os.path.join(save_path, 'config.yaml'), 'w') as f:
         yaml.dump(config, f, sort_keys=False)
 
